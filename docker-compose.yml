@@ -2,7 +2,9 @@ version: '3'
 services:
   api:
     image: api-windows-node
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     #networks:
       #- backend
     ports:
@@ -16,6 +18,6 @@ services:
       #- backend
     command: sh
 
-networks:
-  backend:
-    driver: bridge
+#networks:
+  #backend:
+    #driver: bridge
