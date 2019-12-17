@@ -1,26 +1,36 @@
-FROM mcr.microsoft.com/windows/servercore:1803 as installer
+FROM mcr.microsoft.com/windows/servercore:1803
 
-SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop';$ProgressPreference='silentlyContinue';"]
+WORKDIR /inetpub/wwwroot
 
-RUN Invoke-WebRequest -OutFile nodejs.zip -UseBasicParsing "https://nodejs.org/dist/v12.4.0/node-v12.4.0-win-x64.zip"; Expand-Archive nodejs.zip -DestinationPath C:\; Rename-Item "C:\\node-v12.4.0-win-x64" c:\nodejs
+COPY sources/ .
 
-FROM mcr.microsoft.com/windows/nanoserver:1803
+#COPY sources/node_modules/webworker-threads C:/Users/ContainerAdministrator/AppData/Roaming/npm/node_modules/webworker-threads
 
-WORKDIR C:\nodejs
-COPY --from=installer C:\nodejs\ .
-RUN SETX PATH C:\nodejs
-RUN npm config set registry https://registry.npmjs.org/
+COPY /sources/package*.json ./
 
-WORKDIR /app
+RUN powershell Add-WindowsFeature Web-Asp-Net45,Web-Http-Tracing,Web-Scripting-Tools,Web-WebSockets;
 
-# install and cache app dependencies
-COPY src/WebSpa/package.json /app/src/WebSpa/package.json
+ADD https://nodejs.org/dist/v8.11.4/node-v8.11.4-x64.msi node-v8.11.4-x64.msi
+RUN powershell Start-Process msiexec -ArgumentList '/i node-v8.11.4-x64.msi /qn /l*v nodejs.log' -Wait ;
 
-WORKDIR /app/src/WebSpa
-RUN npm install
+ADD http://go.microsoft.com/fwlink/?LinkID=615137 rewrite_amd64.msi
+RUN powershell Start-Process msiexec -ArgumentList '/i rewrite_amd64.msi /qn /l*v rewrite.log' -Wait ;
 
-# add app
-COPY . /app
+ADD https://github.com/tjanczuk/iisnode/releases/download/v0.2.21/iisnode-full-v0.2.21-x64.msi iisnode-full-v0.2.21-x64.msi
+RUN powershell Start-Process msiexec -ArgumentList '/i iisnode-full-v0.2.21-x64.msi /qn /l*v iisnode.log' -Wait ;
 
-# start app
-CMD cd /app/src/WebSpa && node index.js
+RUN powershell npm install --global --production  npm
+RUN powershell npm install --global --production  node-gyp
+RUN powershell npm --vcc-build-tools-parameters='[""--allWorkloads""]' install --global --production windows-build-tools
+
+ENV PATH 'C:\users\containeradministrator\.windows-build-tools\Python27;C:\Program Files (x86)\MSBuild\14.0\bin\;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Program Files\nodejs\;C:\Users\ContainerAdministrator\AppData\Local\Microsoft\WindowsApps;C:\Users\ContainerAdministrator\AppData\Roaming\npm;'
+ENV PYTHON '%USERPROFILE%\.windows-build-tools\Python27\python.exe'
+ENV PYTHONPATH '%USERPROFILE%\.windows-build-tools\python27'
+ENV VCTargetsPath "C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\v140"
+ENV NODE_PATH "C:\Users\ContainerAdministrator\AppData\Roaming\npm\node_modules"
+
+#RUN powershell npm install express
+#--global --production body-parser busboy cluster consolidate cookie-parser debug express express-fileupload favicon http logger math net path querystring url util jade bindings
+EXPOSE 8080
+
+ENTRYPOINT node.exe ./app.js

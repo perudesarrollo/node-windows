@@ -1,0 +1,4 @@
+nodeProcessCommandLine: "C:\Program Files\nodejs\node.exe"
+devErrorsEnabled: true
+debuggingEnabled: true
+debugHeaderEnabled: true

@@ -1,0 +1,2 @@
+D:\antispamnb_app\antispamnb_app\obj\Release\antispamnb_app.njsprojResolveAssemblyReference.cache
+D:\antispamnb_app\antispamnb_app\bin\Microsoft.NodejsTools.WebRole.dll
